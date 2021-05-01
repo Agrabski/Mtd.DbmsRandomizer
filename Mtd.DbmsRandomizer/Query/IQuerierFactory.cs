@@ -1,9 +1,10 @@
 ﻿using System.Data.Common;
+using Mtd.DbmsRandomizer.DatabaseManagement;
 
 namespace Mtd.DbmsRandomizer.Query
 {
-	internal interface IQuerierFactory
+	public interface IQuerierFactory
 	{
-		IQuerier Create(DbConnection connection);
+		IQuerier Create(IDatabase connection);
 	}
 }

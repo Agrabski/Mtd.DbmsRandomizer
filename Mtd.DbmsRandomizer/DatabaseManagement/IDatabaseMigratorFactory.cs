@@ -4,6 +4,6 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 {
 	internal interface IDatabaseMigratorFactory
 	{
-		IDatabaseMigrator Create(DbConnection from, DbConnection to);
+		IDatabaseMigrator Create(IDatabase from, IDatabase to);
 	}
 }

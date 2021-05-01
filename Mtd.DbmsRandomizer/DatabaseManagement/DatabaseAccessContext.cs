@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,16 +28,16 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 			throw new NotImplementedException();
 		}
 
-		public Task<T> ExecuteQueryAsync<T>(string query, CancellationToken token, params ILiteral[] literals)
+		public IAsyncEnumerable<T> ExecuteQueryAsync<T>(string query, CancellationToken token, params ILiteral[] literals) where T : new()
 		{
-			return _queryExecutor.Execute(
-				async connection =>
-					await connection.ExecuteAsync<T>(string.Format(query, literals.Select(FillLiteral)), token), token);
+			return _queryExecutor.ExecuteAsync(
+				connection =>
+					connection.ExecuteAsync<T>(string.Format(query, literals.Select(FillLiteral)), token), token);
 		}
 
 		public Task ExecuteNonQueryAsync(string nonQuery, CancellationToken token, params ILiteral[] literals)
 		{
-			return _queryExecutor.Execute(
+			return _queryExecutor.ExecuteAsync(
 				async connection =>
 					await connection.ExecuteAsync(string.Format(nonQuery, literals.Select(FillLiteral)), token), token);
 

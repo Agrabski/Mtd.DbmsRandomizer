@@ -1,23 +1,32 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Mtd.DbmsRandomizer.DatabaseManagement;
 using Mtd.IOCUtility;
 namespace Mtd.DbmsRandomizer
 {
+	[DontRegister]
 	public static class DbmsRandomizerRegistrationExtension
 	{
 		public static IServiceCollection WithDbmsRandomizer(this IServiceCollection serviceCollection)
 		{
-			foreach (var type in Assembly.GetAssembly(typeof(DbmsRandomizerRegistrationExtension))?.GetTypes()?
-				.Where(x => x.IsClass && !x.IsInterface))
+			var assembly = Assembly.GetAssembly(typeof(DbmsRandomizerRegistrationExtension));
+			var types = assembly?.GetTypes().Where(x => x.IsClass && !x.IsInterface) ?? throw new MissingRegistrationException();
+			foreach (var type in types)
 			{
+				if (type.GetCustomAttribute<DontRegisterAttribute>() is not null
+				   || type.GetCustomAttribute<CompilerGeneratedAttribute>() is not null
+				   || type.GetInterfaces().All(x => x.Assembly != assembly))
+					continue;
 				if (type.GetCustomAttribute<SingletonAttribute>() is not null)
-					serviceCollection.AddSingleton(type);
+					foreach (var @interface in type.GetInterfaces())
+						serviceCollection.AddSingleton(@interface, type);
 				else
 					if (type.GetCustomAttribute<TransientAttribute>() is not null)
-					serviceCollection.AddTransient(type);
+						foreach (var @interface in type.GetInterfaces())
+							serviceCollection.AddTransient(@interface, type);
 				else
 					throw new MissingRegistrationException();
 			}
@@ -25,7 +34,7 @@ namespace Mtd.DbmsRandomizer
 			return serviceCollection;
 		}
 
-		public static IServiceCollection Configure(this IServiceCollection serviceCollection, IConfiguration configuration)
+		public static IServiceCollection ConfigureDbmsRadnomization(this IServiceCollection serviceCollection, IConfiguration configuration)
 		{
 			return serviceCollection.Configure<DatabaseSwitchOptions>(value =>
 				configuration.GetSection(DatabaseSwitchOptions.SectionName).Bind(value));

@@ -1,8 +1,9 @@
 ﻿using System;
-using System.Runtime.Serialization;
+using Mtd.IOCUtility;
 
 namespace Mtd.DbmsRandomizer
 {
+	[DontRegister]
 	public sealed class MissingRegistrationException : Exception
 	{
 	}

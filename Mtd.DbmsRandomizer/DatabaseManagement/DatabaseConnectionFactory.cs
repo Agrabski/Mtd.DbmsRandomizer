@@ -15,7 +15,7 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 			_factories = factories;
 		}
 
-		public DbConnection Create(DatabaseReference reference)
+		public IDatabase Create(DatabaseReference reference)
 		{
 			return _factories.First(x => x.HandledType == reference.Type).Create(reference.ConnectionString);
 		}

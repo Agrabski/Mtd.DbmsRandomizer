@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,7 +10,7 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 		ILiteral CreateLiteral(string value);
 		ILiteral CreateLiteral(DateTime value);
 
-		Task<T> ExecuteQueryAsync<T>(string query, CancellationToken token, params ILiteral[] literals);
+		IAsyncEnumerable<T> ExecuteQueryAsync<T>(string query, CancellationToken token, params ILiteral[] literals) where T : new();
 
 		Task ExecuteNonQueryAsync(string nonQuery, CancellationToken token, params ILiteral[] literals);
 	}

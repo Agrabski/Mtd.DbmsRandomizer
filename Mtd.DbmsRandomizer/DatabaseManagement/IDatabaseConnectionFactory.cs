@@ -4,6 +4,6 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 {
 	internal interface IDatabaseConnectionFactory
 	{
-		DbConnection Create(DatabaseReference reference);
+		IDatabase Create(DatabaseReference reference);
 	}
 }

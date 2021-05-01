@@ -15,7 +15,7 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 	internal class DatabaseManager : IDatabaseManager, IQueryExecutor
 	{
 		private readonly DatabaseSwitchOptions _options;
-		private readonly List<DbConnection> _connections = new();
+		private readonly List<IDatabase> _connections = new();
 		private readonly CancellationTokenSource _cancellationTokenSource = new();
 		private readonly IDatabaseMigratorFactory _migratorFactory;
 		private readonly IQuerierFactory _querierFactory;
@@ -37,7 +37,7 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 
 		public void AppendConnection(DbConnection connection)
 		{
-			_connections.Add(connection);
+			//_connections.Add(connection);
 		}
 
 		public void Start()
@@ -78,12 +78,13 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 			}
 		}
 
-		public async Task<T> Execute<T>(Func<IQuerier, Task<T>> task, CancellationToken token)
+		public async IAsyncEnumerable<T> ExecuteAsync<T>(Func<IQuerier, IAsyncEnumerable<T>> task, CancellationToken token) where T : new()
 		{
 			await using (await _lock.ReadLockAsync(token))
-				return await task(_querierFactory.Create(_connections[_currentDatabaseIndex]));
+				await foreach (var x in task(_querierFactory.Create(_connections[_currentDatabaseIndex])))
+					yield return x;
 		}
-		public async Task Execute(Func<IQuerier, Task> task, CancellationToken token)
+		public async Task ExecuteAsync(Func<IQuerier, Task> task, CancellationToken token)
 		{
 			await using (await _lock.ReadLockAsync(token))
 				await task(_querierFactory.Create(_connections[_currentDatabaseIndex]));

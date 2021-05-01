@@ -1,15 +1,15 @@
-﻿using System.Data.Common;
-using Mtd.DbmsRandomizer.DatabaseManagement;
+﻿using Mtd.DbmsRandomizer.DatabaseManagement;
 using System.Data.SqlClient;
+using DbType = Mtd.DbmsRandomizer.DatabaseManagement.DbType;
 
 namespace Mtd.DbmsRandomizer.Mssql
 {
 	internal class MssqlDatabaseFactory : IDatabaseFactory
 	{
 		public DbType HandledType => DbType.MsSql;
-		public DbConnection Create(string connectionString)
+		public IDatabase Create(string connectionString)
 		{
-			return new SqlConnection(connectionString);
+			return new MSsqlDatabase(new SqlConnection(connectionString));
 		}
 	}
 }
