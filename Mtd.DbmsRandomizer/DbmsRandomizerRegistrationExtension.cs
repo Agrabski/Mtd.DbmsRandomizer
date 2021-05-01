@@ -1,9 +1,9 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using Microsoft.Extensions.Configuration;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Mtd.DbmsRandomizer.DatabaseManagement;
 using Mtd.IOCUtility;
-
 namespace Mtd.DbmsRandomizer
 {
 	public static class DbmsRandomizerRegistrationExtension
@@ -17,12 +17,19 @@ namespace Mtd.DbmsRandomizer
 					serviceCollection.AddSingleton(type);
 				else
 					if (type.GetCustomAttribute<TransientAttribute>() is not null)
-						serviceCollection.AddTransient(type);
-					else
-						throw new MissingRegistrationException();
+					serviceCollection.AddTransient(type);
+				else
+					throw new MissingRegistrationException();
 			}
 
 			return serviceCollection;
 		}
+
+		public static IServiceCollection Configure(this IServiceCollection serviceCollection, IConfiguration configuration)
+		{
+			return serviceCollection.Configure<DatabaseSwitchOptions>(value =>
+				configuration.GetSection(DatabaseSwitchOptions.SectionName).Bind(value));
+		}
 	}
+
 }
