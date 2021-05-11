@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Microsoft.VisualStudio.Threading;
 using Mtd.DbmsRandomizer.Query;
 using Mtd.IOCUtility;
@@ -12,7 +14,8 @@ using Microsoft.Extensions.Options;
 namespace Mtd.DbmsRandomizer.DatabaseManagement
 {
 	[Singleton]
-	internal class DatabaseManager : IDatabaseManager, IQueryExecutor
+	[UsedImplicitly]
+	internal sealed class DatabaseManager : IDatabaseManager, IQueryExecutor
 	{
 		private readonly DatabaseSwitchOptions _options;
 		private readonly List<IDatabase> _connections = new();
@@ -26,7 +29,7 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 		public DatabaseManager(
 			IOptions<DatabaseSwitchOptions> options,
 			IDatabaseMigratorFactory migratorFactory,
-			IQuerierFactory querierFactory, 
+			IQuerierFactory querierFactory,
 			IDatabaseConnectionFactory connectionFactory)
 		{
 			_options = options.Value;
@@ -40,9 +43,13 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 			//_connections.Add(connection);
 		}
 
-		public void Start()
+		public async Task StartAsync()
 		{
+			if (_options.Databases.Count < 2)
+				throw new InvalidOperationException(
+					$"Too few database connections for switching. Was {_options.Databases.Count} shoud be at least 2");
 			_connections.AddRange(_options.Databases.Select(_connectionFactory.Create));
+			await Task.WhenAll(_connections.Select(x => x.Connection.OpenAsync()));
 			var token = _cancellationTokenSource.Token;
 			_currentDatabaseIndex = 0;
 			_ = Task.Run(async () =>
@@ -51,7 +58,7 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 				  {
 					  if (token.IsCancellationRequested)
 						  return;
-					  await Task.Delay(_options.SwitchInterval, token);
+					  await Task.Delay(SelectNewInterval(), token);
 					  await SwitchDatabaseAsync(token);
 				  }
 			  }, token);
@@ -63,7 +70,6 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 		{
 			_cancellationTokenSource.Cancel();
 			_cancellationTokenSource.Dispose();
-			GC.SuppressFinalize(this);
 		}
 
 		private async Task SwitchDatabaseAsync(CancellationToken token)
@@ -71,14 +77,20 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 			await using (await _lock.WriteLockAsync(token))
 			{
 				var from = _connections[_currentDatabaseIndex];
-				_currentDatabaseIndex = _currentDatabaseIndex > _connections.Count ? 0 : _currentDatabaseIndex + 1;
+				int newDatabaseIndex;
+				do
+				{
+					newDatabaseIndex = new Random().Next(0, _connections.Count);
+				} while (newDatabaseIndex == _currentDatabaseIndex);
+
+				_currentDatabaseIndex = newDatabaseIndex;
 				var to = _connections[_currentDatabaseIndex];
 				var migrator = _migratorFactory.Create(from, to);
 				await migrator.MigrateAsync(token);
 			}
 		}
 
-		public async IAsyncEnumerable<T> ExecuteAsync<T>(Func<IQuerier, IAsyncEnumerable<T>> task, CancellationToken token) where T : new()
+		public async IAsyncEnumerable<T> ExecuteAsync<T>(Func<IQuerier, IAsyncEnumerable<T>> task, [EnumeratorCancellation] CancellationToken token) where T : new()
 		{
 			await using (await _lock.ReadLockAsync(token))
 				await foreach (var x in task(_querierFactory.Create(_connections[_currentDatabaseIndex])))
@@ -91,5 +103,12 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 		}
 
 		public DbType DbmsType => _querierFactory.Create(_connections[_currentDatabaseIndex]).Type;
+
+		private TimeSpan SelectNewInterval()
+		{
+			var interval = _options.MinimumSwitchInterval;
+			var diff = (_options.MaximumSwitchInterval - _options.MinimumSwitchInterval).Seconds;
+			return interval.Add(new TimeSpan(new Random().Next(0, diff * 100_000_000)));
+		}
 	}
 }

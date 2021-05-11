@@ -8,8 +8,8 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 {
 	public interface IDatabase
 	{
-		IAsyncEnumerable<DataTable> GetTablesAsync(CancellationToken cc);
-		Task LoadTableAsync(DataTable ds, CancellationToken cc);
+		IAsyncEnumerable<IDataReader> GetTablesAsync(CancellationToken cc);
+		Task LoadTableAsync(IDataReader reader, CancellationToken cc);
 		DbConnection Connection { get; }
 		DbType Type { get; }
 	}

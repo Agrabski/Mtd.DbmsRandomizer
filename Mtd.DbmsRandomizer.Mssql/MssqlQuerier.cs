@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -20,16 +21,15 @@ namespace Mtd.DbmsRandomizer.Mssql
 		public async IAsyncEnumerable<T> ExecuteAsync<T>(string task, [EnumeratorCancellation] CancellationToken token) where T : new()
 		{
 			var command = new SqlCommand(task, _connection);
-			var reader = await command.ExecuteReaderAsync(token);
+			await using var reader = await command.ExecuteReaderAsync(token);
 			while (await reader.ReadAsync(token))
 			{
-				var result = new T();
+				// boxing messes it up for structs
+				object result = new T();
 				foreach (var field in typeof(T).GetFields())
-				{
-					field.SetValue(result, reader[field.Name]);
-				}
+					field.SetValue(result, Convert.ChangeType(reader[field.Name], field.FieldType));
 
-				yield return result;
+				yield return (T)result;
 			}
 		}
 

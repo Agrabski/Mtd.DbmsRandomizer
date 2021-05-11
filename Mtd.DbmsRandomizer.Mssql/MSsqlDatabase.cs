@@ -2,6 +2,7 @@
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Mtd.DbmsRandomizer.DatabaseManagement;
@@ -18,25 +19,20 @@ namespace Mtd.DbmsRandomizer.Mssql
 			_connection = connection;
 		}
 
-		public async IAsyncEnumerable<DataTable> GetTablesAsync(CancellationToken cc)
+		public async IAsyncEnumerable<IDataReader> GetTablesAsync([EnumeratorCancellation] CancellationToken cc)
 		{
 			var schema = _connection.GetSchema();
 			foreach (DataRow table in schema.Rows)
 			{
-				yield return await Task.Run(() =>
-				{
-					var result = new DataTable((string)table[2]);
-					var adapter = new SqlDataAdapter($"select * from {table[2]}", _connection);
-					adapter.Fill(result);
-					return result;
-				}, cc);
+				var command = new SqlCommand($"select * from {table[2]}", _connection);
+				yield return await command.ExecuteReaderAsync(cc);
 			}
 		}
 
-		public async Task LoadTableAsync(DataTable ds, CancellationToken cc)
+		public async Task LoadTableAsync(IDataReader reader, CancellationToken cc)
 		{
 			var bulkCopy = new SqlBulkCopy(_connection);
-			await bulkCopy.WriteToServerAsync(ds, cc);
+			await bulkCopy.WriteToServerAsync(reader, cc);
 		}
 
 		public DbConnection Connection => _connection;
