@@ -31,8 +31,16 @@ namespace Mtd.DbmsRandomizer.Mssql
 
 		public async Task LoadTableAsync(IDataReader reader, CancellationToken cc)
 		{
+			var deleteCommand = _connection.CreateCommand();
+			deleteCommand.CommandText = $"delete from {reader.GetSchemaTable().TableName}";
+			await deleteCommand.ExecuteNonQueryAsync(cc);
 			var bulkCopy = new SqlBulkCopy(_connection);
 			await bulkCopy.WriteToServerAsync(reader, cc);
+		}
+
+		public string FormatLiteral(object literal)
+		{
+			return $"'{literal}'";
 		}
 
 		public DbConnection Connection => _connection;

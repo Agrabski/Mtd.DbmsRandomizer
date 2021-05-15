@@ -1,0 +1,19 @@
+﻿@model TestApplication.Pages.Shared.FindCustomerModel
+@{
+    <table class="table table-bordered table-responsive table-hover">
+        <tr>
+            <th>Name</th>
+            <th>Surname</th>
+            <th>FavoriteNumber </th>
+        </tr>
+        @foreach (var d in Model.List)
+        {
+            <tr>
+                <td>@d.Name</td>
+                <td>@d.Surname</td>
+                <td>@d.Favorite_Number</td>
+            </tr>
+
+        }
+    </table>
+}

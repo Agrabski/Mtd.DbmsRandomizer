@@ -11,5 +11,6 @@ namespace Mtd.DbmsRandomizer.Query
 		IAsyncEnumerable<T> ExecuteAsync<T>(Func<IQuerier, IAsyncEnumerable<T>> task, CancellationToken token) where T : new();
 		Task ExecuteAsync(Func<IQuerier, Task> task, CancellationToken token);
 		DbType DbmsType { get; }
+		string FromatLiteral(object literal);
 	}
 }

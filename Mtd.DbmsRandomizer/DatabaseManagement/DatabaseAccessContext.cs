@@ -18,34 +18,24 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 			_queryExecutor = queryExecutor;
 		}
 
-		public ILiteral CreateLiteral(string value)
-		{
-			throw new NotImplementedException();
-		}
-
-		public ILiteral CreateLiteral(DateTime value)
-		{
-			throw new NotImplementedException();
-		}
-
-		public IAsyncEnumerable<T> ExecuteQueryAsync<T>(string query, CancellationToken token, params ILiteral[] literals) where T : new()
+		public IAsyncEnumerable<T> ExecuteQueryAsync<T>(string query, CancellationToken token, params object[] literals) where T : new()
 		{
 			return _queryExecutor.ExecuteAsync(
 				connection =>
-					connection.ExecuteAsync<T>(string.Format(query, literals.Select(FillLiteral)), token), token);
+					connection.ExecuteAsync<T>(string.Format(query, literals.Select(FillLiteral).ToArray()), token), token);
 		}
 
-		public Task ExecuteNonQueryAsync(string nonQuery, CancellationToken token, params ILiteral[] literals)
+		public Task ExecuteNonQueryAsync(string nonQuery, CancellationToken token, params object[] literals)
 		{
 			return _queryExecutor.ExecuteAsync(
 				async connection =>
-					await connection.ExecuteAsync(string.Format(nonQuery, literals.Select(FillLiteral)), token), token);
+					await connection.ExecuteAsync(string.Format(nonQuery, literals.Select(FillLiteral).ToArray()), token), token);
 
 		}
 
-		private string FillLiteral(ILiteral literal)
+		private string FillLiteral(object literal)
 		{
-			return literal.ToString(_queryExecutor.DbmsType);
+			return _queryExecutor.FromatLiteral(literal);
 		}
 	}
 }

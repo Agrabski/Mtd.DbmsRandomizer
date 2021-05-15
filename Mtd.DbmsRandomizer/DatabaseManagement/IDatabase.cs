@@ -12,5 +12,7 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 		Task LoadTableAsync(IDataReader reader, CancellationToken cc);
 		DbConnection Connection { get; }
 		DbType Type { get; }
+
+		string FormatLiteral(object literal);
 	}
 }

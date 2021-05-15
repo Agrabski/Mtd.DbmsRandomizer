@@ -26,8 +26,8 @@ namespace Mtd.DbmsRandomizer.Mssql
 			{
 				// boxing messes it up for structs
 				object result = new T();
-				foreach (var field in typeof(T).GetFields())
-					field.SetValue(result, Convert.ChangeType(reader[field.Name], field.FieldType));
+				foreach (var field in typeof(T).GetProperties())
+					field.SetValue(result, Convert.ChangeType(reader[field.Name], field.PropertyType));
 
 				yield return (T)result;
 			}

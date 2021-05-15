@@ -110,5 +110,10 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 			var diff = (_options.MaximumSwitchInterval - _options.MinimumSwitchInterval).Seconds;
 			return interval.Add(new TimeSpan(new Random().Next(0, diff * 100_000_000)));
 		}
+
+		public string FromatLiteral(object literal)
+		{
+			return _connections[_currentDatabaseIndex].FormatLiteral(literal);
+		}
 	}
 }

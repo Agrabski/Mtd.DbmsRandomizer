@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -17,17 +18,12 @@ namespace TestApplication.Controllers
 			_databaseManager = databaseManager;
 		}
 
-		[HttpGet]
-		public IActionResult Index()
-		{
-			return View();
-		}
-
 		[HttpPost]
-		public async Task<IActionResult> AddCustomer(AddCustomerModel model)
+		[ActionName("AddCustomer")]
+		public async Task<IActionResult> AddCustomer(CustomerModel model)
 		{
-			await _databaseManager.Context.ExecuteNonQueryAsync($"insert into dbo.customers (name, surname, favorite_number) values ('{model.Name}', '{model.Surname}', '{model.FavoriteNumber}')", new CancellationToken());
-			return View();
+			await _databaseManager.Context.ExecuteNonQueryAsync($"insert into dbo.customers (name, surname, favorite_number) values ({{0}}, {{1}}, '{model.Favorite_Number}')", new CancellationToken(), model.Name, model.Surname);
+			return View("index");
 		}
 	}
 }

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace TestApplication.Pages
 {
-	public class AddCustomerModel
+	public class CustomerModel
 	{
 		[Required]
 		[BindProperty]
@@ -18,7 +18,7 @@ namespace TestApplication.Pages
 		public string Surname { get; set; }
 		[Required]
 		[BindProperty]
-		public string FavoriteNumber { get; set; }
+		public string Favorite_Number { get; set; }
 
 	}
 }

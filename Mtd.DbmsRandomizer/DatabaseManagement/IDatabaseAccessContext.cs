@@ -7,11 +7,8 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 {
 	public interface IDatabaseAccessContext
 	{
-		ILiteral CreateLiteral(string value);
-		ILiteral CreateLiteral(DateTime value);
+		IAsyncEnumerable<T> ExecuteQueryAsync<T>(string query, CancellationToken token, params object[] literals) where T : new();
 
-		IAsyncEnumerable<T> ExecuteQueryAsync<T>(string query, CancellationToken token, params ILiteral[] literals) where T : new();
-
-		Task ExecuteNonQueryAsync(string nonQuery, CancellationToken token, params ILiteral[] literals);
+		Task ExecuteNonQueryAsync(string nonQuery, CancellationToken token, params object[] literals);
 	}
 }
