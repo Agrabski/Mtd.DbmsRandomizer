@@ -7,15 +7,16 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Mtd.DbmsRandomizer.DatabaseManagement;
+using MySql.Data.MySqlClient;
 using DbType = Mtd.DbmsRandomizer.DatabaseManagement.DbType;
 
-namespace Mtd.DbmsRandomizer.Mssql
+namespace Mtd.DbmsRandomizer.Mysql
 {
-	internal class MSsqlDatabase : IDatabase
+	internal class MysqlDatabase : IDatabase
 	{
-		private readonly SqlConnection _connection;
+		private readonly MySqlConnection _connection;
 
-		public MSsqlDatabase(SqlConnection connection)
+		public MysqlDatabase(MySqlConnection connection)
 		{
 			_connection = connection;
 		}
@@ -25,7 +26,7 @@ namespace Mtd.DbmsRandomizer.Mssql
 			var schema = _connection.GetSchema();
 			foreach (DataRow table in schema.Rows)
 			{
-				var command = new SqlCommand($"select * from {table[2]}", _connection);
+				var command = new MySqlCommand($"select * from {table[2]}", _connection);
 				yield return await command.ExecuteReaderAsync(cc);
 			}
 		}
@@ -35,8 +36,8 @@ namespace Mtd.DbmsRandomizer.Mssql
 			var deleteCommand = _connection.CreateCommand();
 			deleteCommand.CommandText = $"delete from {reader.GetSchemaTable().TableName}";
 			await deleteCommand.ExecuteNonQueryAsync(cc);
-			var bulkCopy = new SqlBulkCopy(_connection);
-			await bulkCopy.WriteToServerAsync(reader, cc);
+			var bulkCopy = new MySqlBulkLoader(_connection);
+			await bulkCopy.LoadAsync(reader, cc);
 		}
 
 		public string FormatLiteral(object literal)
@@ -45,6 +46,6 @@ namespace Mtd.DbmsRandomizer.Mssql
 		}
 
 		public DbConnection Connection => _connection;
-		public DbType Type => DbType.MsSql;
+		public DbType Type => DbType.MySql;
 	}
 }

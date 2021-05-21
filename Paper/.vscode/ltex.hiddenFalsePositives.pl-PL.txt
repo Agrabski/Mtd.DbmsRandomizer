@@ -1,0 +1,1 @@
+{"rule":"ZDANIA_ZLOZONE","sentence":"^\\QW celu przetestowania rozwiązania zaimplementowano bibliotekę w języku C. SqlRandomizer wykorzystuje różnice w dialektach SQL do utrudnienia rekonesansu.\\E$"}
