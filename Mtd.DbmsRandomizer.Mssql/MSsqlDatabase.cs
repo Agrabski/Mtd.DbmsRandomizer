@@ -20,22 +20,30 @@ namespace Mtd.DbmsRandomizer.Mssql
 			_connection = connection;
 		}
 
-		public async IAsyncEnumerable<IDataReader> GetTablesAsync([EnumeratorCancellation] CancellationToken cc)
+		public async IAsyncEnumerable<MigrationData> GetTablesAsync([EnumeratorCancellation] CancellationToken cc)
 		{
-			var schema = _connection.GetSchema();
-			foreach (DataRow table in schema.Rows)
+			var schemaCommand = new SqlCommand("select * from sys.objects where type_desc = 'USER_TABLE'", _connection);
+			await using var schemaReader = await schemaCommand.ExecuteReaderAsync(cc);
+
+			while(await schemaReader.ReadAsync(cc))
 			{
-				var command = new SqlCommand($"select * from {table[2]}", _connection);
-				yield return await command.ExecuteReaderAsync(cc);
+				var tableName = schemaReader.GetString("name");
+				var command = new SqlCommand($"select * from {tableName}", _connection);
+
+				var reader = await command.ExecuteReaderAsync(cc);
+				yield return new MigrationData(tableName, reader);
 			}
 		}
 
-		public async Task LoadTableAsync(IDataReader reader, CancellationToken cc)
+		public async Task LoadTableAsync(IDataReader reader, string tableName, CancellationToken cc)
 		{
 			var deleteCommand = _connection.CreateCommand();
-			deleteCommand.CommandText = $"delete from {reader.GetSchemaTable().TableName}";
+			deleteCommand.CommandText = $"delete from {tableName}";
 			await deleteCommand.ExecuteNonQueryAsync(cc);
-			var bulkCopy = new SqlBulkCopy(_connection);
+			var bulkCopy = new SqlBulkCopy(_connection)
+			{
+				DestinationTableName = tableName
+			};
 			await bulkCopy.WriteToServerAsync(reader, cc);
 		}
 

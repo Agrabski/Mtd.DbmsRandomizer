@@ -1,11 +1,13 @@
 ﻿@page 
 @model TestApplication.Pages.CustomerModel
+<span>Add user</span>
 <form method="post" asp-controller="Customer" asp-action="AddCustomer">
     <input asp-for="Name"/>
     <input asp-for="Surname"/>
     <input asp-for="Favorite_Number"/>
     <input type="submit"/>
 </form>
+<span>Find user</span>
 <form method="post" asp-controller="FindCustomer" asp-action="FindCustomer">
     <input asp-for="Surname" />
     <input type="submit" />

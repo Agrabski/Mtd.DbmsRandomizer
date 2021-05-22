@@ -24,16 +24,14 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 
 		public async Task MigrateAsync(CancellationToken cancellationToken)
 		{
-			var readers = await Task.WhenAll(await _from.GetTablesAsync(cancellationToken)
-				.Select(x => MigrateAsync(x, cancellationToken)).ToListAsync(cancellationToken));
-			foreach (var reader in readers)
-				reader.Dispose();
+			await Task.WhenAll(await _from.GetTablesAsync(cancellationToken)
+				.Select(x => MigrateAsync(x.Reader, x.TableName, cancellationToken)).ToListAsync(cancellationToken));
 		}
 
-		private async Task<IDataReader> MigrateAsync(IDataReader reader, CancellationToken cc)
+		private async Task MigrateAsync(IDataReader reader, string tableName, CancellationToken cc)
 		{
-			await _to.LoadTableAsync(reader, cc);
-			return reader;
+			await _to.LoadTableAsync(reader, tableName, cc);
+			reader.Dispose();
 		}
 	}
 }

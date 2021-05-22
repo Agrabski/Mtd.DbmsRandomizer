@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Mtd.DbmsRandomizer;
 using Mtd.DbmsRandomizer.Mssql;
+using Mtd.DbmsRandomizer.Mysql;
 
 namespace TestApplication
 {
@@ -28,6 +29,7 @@ namespace TestApplication
 			services.AddRazorPages();
 			services.WithDbmsRandomizer()
 				.WithMssqlRandomization()
+				.WithMysqlRandomization()
 				.ConfigureDbmsRadnomization(Configuration);
 		}
 

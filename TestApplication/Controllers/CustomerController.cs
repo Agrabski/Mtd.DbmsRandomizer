@@ -22,8 +22,8 @@ namespace TestApplication.Controllers
 		[ActionName("AddCustomer")]
 		public async Task<IActionResult> AddCustomer(CustomerModel model)
 		{
-			await _databaseManager.Context.ExecuteNonQueryAsync($"insert into dbo.customers (name, surname, favorite_number) values ({{0}}, {{1}}, '{model.Favorite_Number}')", new CancellationToken(), model.Name, model.Surname);
-			return View("index");
+			await _databaseManager.Context.ExecuteNonQueryAsync($"insert into customers (name, surname, favorite_number) values ({{0}}, {{1}}, '{model.Favorite_Number}')", new CancellationToken(), model.Name, model.Surname);
+			return View("success");
 		}
 	}
 }

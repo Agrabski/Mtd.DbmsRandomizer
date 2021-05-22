@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Mtd.DbmsRandomizer.Mssql\Mtd.DbmsRandomizer.Mssql.csproj" />
+    <ProjectReference Include="..\Mtd.DbmsRandomizer.Mysql\Mtd.DbmsRandomizer.Mysql.csproj" />
     <ProjectReference Include="..\Mtd.DbmsRandomizer\Mtd.DbmsRandomizer.csproj" />
   </ItemGroup>
 

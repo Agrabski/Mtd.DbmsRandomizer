@@ -10,6 +10,7 @@ using Microsoft.VisualStudio.Threading;
 using Mtd.DbmsRandomizer.Query;
 using Mtd.IOCUtility;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 
 namespace Mtd.DbmsRandomizer.DatabaseManagement
 {
@@ -21,7 +22,7 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 		private readonly List<IDatabase> _connections = new();
 		private readonly CancellationTokenSource _cancellationTokenSource = new();
 		private readonly IDatabaseMigratorFactory _migratorFactory;
-		private readonly IQuerierFactory _querierFactory;
+		private readonly List<IQuerierFactory> _querierFactory;
 		private readonly IDatabaseConnectionFactory _connectionFactory;
 		private int _currentDatabaseIndex;
 		private readonly AsyncReaderWriterLock _lock = new();
@@ -29,12 +30,12 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 		public DatabaseManager(
 			IOptions<DatabaseSwitchOptions> options,
 			IDatabaseMigratorFactory migratorFactory,
-			IQuerierFactory querierFactory,
+			IEnumerable<IQuerierFactory> querierFactory,
 			IDatabaseConnectionFactory connectionFactory)
 		{
 			_options = options.Value;
 			_migratorFactory = migratorFactory;
-			_querierFactory = querierFactory;
+			_querierFactory = querierFactory.ToList();
 			_connectionFactory = connectionFactory;
 		}
 
@@ -58,7 +59,9 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 				  {
 					  if (token.IsCancellationRequested)
 						  return;
-					  await Task.Delay(SelectNewInterval(), token);
+					  var delay = SelectNewInterval();
+					  Debug.WriteLine(delay);
+					  await Task.Delay(delay, token);
 					  await SwitchDatabaseAsync(token);
 				  }
 			  }, token);
@@ -78,9 +81,10 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 			{
 				var from = _connections[_currentDatabaseIndex];
 				int newDatabaseIndex;
+				var random = new Random();
 				do
 				{
-					newDatabaseIndex = new Random().Next(0, _connections.Count);
+					newDatabaseIndex = random.Next(0, _connections.Count);
 				} while (newDatabaseIndex == _currentDatabaseIndex);
 
 				_currentDatabaseIndex = newDatabaseIndex;
@@ -93,16 +97,16 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 		public async IAsyncEnumerable<T> ExecuteAsync<T>(Func<IQuerier, IAsyncEnumerable<T>> task, [EnumeratorCancellation] CancellationToken token) where T : new()
 		{
 			await using (await _lock.ReadLockAsync(token))
-				await foreach (var x in task(_querierFactory.Create(_connections[_currentDatabaseIndex])))
+				await foreach (var x in task(_querierFactory.First(x=>x.HandledType == _connections[_currentDatabaseIndex].Type).Create(_connections[_currentDatabaseIndex])))
 					yield return x;
 		}
 		public async Task ExecuteAsync(Func<IQuerier, Task> task, CancellationToken token)
 		{
 			await using (await _lock.ReadLockAsync(token))
-				await task(_querierFactory.Create(_connections[_currentDatabaseIndex]));
+				await task(_querierFactory.First(x => x.HandledType == _connections[_currentDatabaseIndex].Type).Create(_connections[_currentDatabaseIndex]));
 		}
 
-		public DbType DbmsType => _querierFactory.Create(_connections[_currentDatabaseIndex]).Type;
+		public DbType DbmsType => _querierFactory.First(x => x.HandledType == _connections[_currentDatabaseIndex].Type).Create(_connections[_currentDatabaseIndex]).Type;
 
 		private TimeSpan SelectNewInterval()
 		{
