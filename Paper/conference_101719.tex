@@ -16,32 +16,47 @@
 \title{SqlRandomizer: rozwiązanie MTD do zabezpieczania serwerów z bazami danych}
 
 \author{\IEEEauthorblockN{1\textsuperscript{st} Adam Grabski}
-\IEEEauthorblockA{\textit{Wydział Elektroniki i Technik Informacyjnych} \\
-\textit{Politechnika Warszawska}\\
-Warszawa, Polska \\
-adam.grabski.stud@pw.edu.pl}
-\and
-\IEEEauthorblockN{2\textsuperscript{nd} Artur Godlewski}
-\IEEEauthorblockA{\textit{Wydział Elektroniki i Technik Informacyjnych} \\
-\textit{Politechnika Warszawska}\\
-Warszawa, Polska \\
-artur.godlewski.stud@pw.edu.pl}}
+    \IEEEauthorblockA{\textit{Wydział Elektroniki i Technik Informacyjnych} \\
+        \textit{Politechnika Warszawska}\\
+        Warszawa, Polska \\
+        adam.grabski.stud@pw.edu.pl}
+    \and
+    \IEEEauthorblockN{2\textsuperscript{nd} Artur Godlewski}
+    \IEEEauthorblockA{\textit{Wydział Elektroniki i Technik Informacyjnych} \\
+        \textit{Politechnika Warszawska}\\
+        Warszawa, Polska \\
+        artur.godlewski.stud@pw.edu.pl}}
 
 \maketitle
 
 \begin{abstract}
-Bazy danych SQL stanowią podstawowe rozwiązanie do przechowywania danych w aplikacjach webowych.
-Sprawia to, że atak typu sql-injection jest jednym z podstawowych typów zagrożeń w internecie.
-SqlRandomizer wykorzystuje różnice w dialektach języka SQL, aby utrudnić atakującemu rozpoznanie i wykorzystanie podatności tego typu w aplikacji.
+    Bazy danych SQL stanowią podstawowe rozwiązanie do długotrwałego przechowywania danych.
+    Tego typu oprogramowanie jest podatne na wstrzykiwanie kodu.
+    Dlatego serwer przyjmujący dane użytkownika, na podstawie których buduje zapytania sql, musi sanityzować otrzymywane informacje.
+    Pomimo szerokiej dostępności bibliotek rozwiązujących ten problem, takie podatności nadal są odkrywane.
+    SqlRandomizer to rozwiązanie typu MTD wykorzystujące różnice w dialektach języka SQL, aby utrudnić atakującemu rozpoznanie i wykorzystanie podatności typu sql injection w aplikacji.
+    Moving target defence to kategoria technnik obrony polegająca na wprowadzeniu zmienności w architekturze chronionego systemu.
 
+    Poprzez wprowadzenie losowości w używanej bazie danych oraz w składni zapytania, dodajemy element niepewności do procesu rekonesansu.
+    Atakujący nie może mieć pewności czy po znalezieniu podatności jego próbny atak nie powiódł się przez jego błąd, czy przez zmianę w systemie.
+    Nawet po ustaleniu wektora ataku, napastnik nie jest w stanie go wykorzystywać deterministycznie.
+    Nie może być też więc pewien, czy dana dziura w zabezpieczeniach dalej jest dostępna ale system jest w niewłaściwym stanie, czy została już usunięta przez administratora.
+
+    Zmniejsza to asymetrię informacyjną pomiędzy atakującym a broniącym.
+    Ponadto, takie wydłużenie procesu rekonesansu, daje administratorowi systemu więcej czasu na wykrycie i zapobieganie atakowi.
 
 \end{abstract}
 
 \begin{IEEEkeywords}
-SQL, MTD, zabezpieczenia, moving target defence
+    SQL, MTD, zabezpieczenia, moving target defence
 \end{IEEEkeywords}
 
 \section{Wstęp}
+
+Aplikacje web są w dzisiejszych czasach podstawą działania wielu firm \cite{web:apps}.
+Właściwe ich zabezpiecznie staje się więc coraz ważniejszym polem do badań.
+Jednym z najistotniejszych aspektów obrony takich aplikacji to ochrona bazy danych.
+Uzyskanie dostępu do tej części systemu pozwala atakującemu pobranie lub usunięcie wrażliwych informacji.
 
 SQL jest językiem do pisania zapytań do bazy danych, używanym we wszystkich systemach DBMS.
 Każdy producent tego typu oprogramowania ma jednak własny dialekt tego języka.
@@ -53,6 +68,12 @@ Na tym etapie typ bazy danych może być nieznany.
 Wystarczy, że atakujący wprowadzi błąd składniowy do generowanego zapytania.
 W następnym etapie rozpoznania, atakujący musi ustalić jakiego typu baza danych jest używana, jak wygląda składnia zapytania którego, używa oraz jak wygląda schemat danych atakowanej aplikacji.
 Po zebraniu tych danych może opracować zapytanie, które osiągnie wybrany przez niego cel.
+
+\section{Istniejące rozwiązania}
+
+Wprowadzenie elementu losowości do komunikacji z bazą danych jest częstym tematem badań.
+Bardzo podobne rozwiązanie zostało zaproponowane w 2004 roku.
+Polegało na wprowadzeniu losowo generowanego dialektu sql, który byłby tłumaczony na standardowy język przez serwer pośredniczący \cite{sqlRand}.
 
 \section{Opis rozwiązania}
 
@@ -71,18 +92,54 @@ To rozwiązanie zawiera więc dwa punkty swobody w atakowanym systemie: typ uży
 Dzięki temu atakującemu trudniej ustalić, z jaką bazą danych w danym momencie ma do czynienia.
 Ta losowość powinna utrudnić rekonesans oraz wydłużyć czas potrzebny na wykorzystanie znalezionej podatności.
 
-Wprowadzenie elementu losowości do komunikacji z bazą danych jest częstym tematem badań \cite{sqlRand}.
 
 
 \section{Testy}
 W celu przetestowania tego rozwiązania zostały przeprowadzone testy na prostej aplikacji, przechowującej ulubione liczby użytkowników.
+Aplikacja składa się z jednej strony internetowej na której użytkownik może zarejestrować swoją ulubioną liczbę, lub wyszukać innych użytkowników.
+Jest to minimalny przykład programu gdzie występują wszystkie najczęstsze typy zapytań: insert oraz select z klauzulą where.
+Ponieważ te dwa zapytania są typowo budowane na podstawie danych od użytkownika, stanowią potencjalny wektor ataku.
+
+Do testów użyliśmy dwóch baz danych: Mysql oraz Mssql.
+Zostały wybrane, ponieważ korzystają z innych dialektów sql.
+Na przykład Mysql akceptuje zarówno cudzysłowy jak i apostrofy przy deklarowaniu literałów, natomiast w Mssql można używać tylko apostrofów.
+
 \subsection{Model użycia aplikacji}
+W ramach tych testów, założyliśmy następujący, parametryzowalny model użycia aplikacji:
+\begin{itemize}
+    \item Istnieje N jednoczesnych użytkowników, wykonujących 2 zapytania na minutę.
+    \item Użytkownik ma K procent szans na zarejestrownanie nowej, losowo wygenerowanej osoby.
+\end{itemize}
+Zmieniając wartości parametru N oraz K możemy zbadać prędkość ataku przy różnych obciążeniach serwera.
+Pozwoli to nam także ocenić wpływ naszego rozwiązania na średni czas wykonania zapytania.
+W ten sposób będziemy mogli oszacować koszt jego implementacji w środowisku produkcyjnym.
 \subsection{Model ataku}
+Podobnie jak przy definiowaniu modelu użycia aplikacji, model ataku jest parametryzowany.
+Zakładamy że atakujący może wykonać maksymalnie L zapytań na minutę.
+Ma to symulować naturalne ograniczenia wynikające z:
+\begin{itemize}
+    \item Skończonych zasobów atakującego.
+    \item Opóźnień spowodowanych koniecznością analizy wyników poprzednich zapytań.
+    \item Próby zamaskowania ataku w normalnym ruchu sieciowym. Bardzo duża ilość zapytań z jednego adresu mogłaby wzbudzić podejrzenia atakowanego.
+\end{itemize}
+
+Aby dokonać ataku typu sql injection, atakujący musi pozyskać następujące informacje o atakowanym systemie:
+\begin{itemize}
+    \item Który parametr jest podatny na wstrzykiwanie sql.
+    \item Jaka jest składnia atakowanego zapytania.
+    \item Który dialekt sql jest używany na atakowanym serwerze.
+    \item Jak nazywają się tabele w atakowanej aplikacji.
+\end{itemize}
+
+
+\subsection{Wyniki}
+
 \section{Wnioski}
 
 \begin{thebibliography}{00}
-\bibitem{mtd:sql} M Taguinod, A Doupe, Z Zhao, i G Ahn , ``Toward a Moving Target Defense for Web Applications''Arizona State University, August 2015.
-\bibitem{sqlRand} S W Boyd i A D. Keromytis ``SQLrand: Preventing SQL Injection Attacks'' 2004 Applied Cryptography and Network Security, pp 292-302
+    \bibitem{mtd:sql} M Taguinod, A Doupe, Z Zhao, i G Ahn , ``Toward a Moving Target Defense for Web Applications''Arizona State University, August 2015.
+    \bibitem{sqlRand} S W Boyd i A D. Keromytis ``SQLrand: Preventing SQL Injection Attacks'' 2004 Applied Cryptography and Network Security, pp 292-302
+    \bibitem{web:apps} Dissanayake, Nalaka i Dias, Kapila. (2017). Web-based Applications: Extending the General Perspective of the Service of Web.
 \end{thebibliography}
 \vspace{12pt}
 \end{document}
