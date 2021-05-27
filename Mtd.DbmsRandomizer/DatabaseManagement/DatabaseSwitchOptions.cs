@@ -8,8 +8,8 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 	public class DatabaseSwitchOptions
 	{
 		public const string SectionName = "DatabaseSwitch";
-		public TimeSpan MinimumSwitchInterval{ get; set; }
-		public TimeSpan MaximumSwitchInterval { get; set; }
+		public int MinimumSwitchInterval { get; set; }
+		public int MaximumSwitchInterval { get; set; }
 		public List<DatabaseReference> Databases { get; set; }
 	}
 }

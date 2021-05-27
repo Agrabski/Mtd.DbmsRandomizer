@@ -25,6 +25,7 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 		private readonly List<IQuerierFactory> _querierFactory;
 		private readonly IDatabaseConnectionFactory _connectionFactory;
 		private int _currentDatabaseIndex;
+		private int _queriesToSwitch = 0;
 		private readonly AsyncReaderWriterLock _lock = new();
 
 		public DatabaseManager(
@@ -53,18 +54,7 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 			await Task.WhenAll(_connections.Select(x => x.Connection.OpenAsync()));
 			var token = _cancellationTokenSource.Token;
 			_currentDatabaseIndex = 0;
-			_ = Task.Run(async () =>
-			  {
-				  while (!token.IsCancellationRequested)
-				  {
-					  if (token.IsCancellationRequested)
-						  return;
-					  var delay = SelectNewInterval();
-					  Debug.WriteLine(delay);
-					  await Task.Delay(delay, token);
-					  await SwitchDatabaseAsync(token);
-				  }
-			  }, token);
+			_queriesToSwitch = SelectNewInterval();
 		}
 
 		public IDatabaseAccessContext Context => new DatabaseAccessContext(this);
@@ -77,20 +67,24 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 
 		private async Task SwitchDatabaseAsync(CancellationToken token)
 		{
-			await using (await _lock.WriteLockAsync(token))
+			if (_queriesToSwitch-- <= 0)
 			{
-				var from = _connections[_currentDatabaseIndex];
-				int newDatabaseIndex;
-				var random = new Random();
-				do
+				await using (await _lock.WriteLockAsync(token))
 				{
-					newDatabaseIndex = random.Next(0, _connections.Count);
-				} while (newDatabaseIndex == _currentDatabaseIndex);
+					var from = _connections[_currentDatabaseIndex];
+					int newDatabaseIndex;
+					var random = new Random();
+					do
+					{
+						newDatabaseIndex = random.Next(0, _connections.Count);
+					} while (newDatabaseIndex == _currentDatabaseIndex);
 
-				_currentDatabaseIndex = newDatabaseIndex;
-				var to = _connections[_currentDatabaseIndex];
-				var migrator = _migratorFactory.Create(from, to);
-				await migrator.MigrateAsync(token);
+					_currentDatabaseIndex = newDatabaseIndex;
+					var to = _connections[_currentDatabaseIndex];
+					var migrator = _migratorFactory.Create(from, to);
+					await migrator.MigrateAsync(token);
+					_queriesToSwitch = SelectNewInterval();
+				}
 			}
 		}
 
@@ -99,20 +93,20 @@ namespace Mtd.DbmsRandomizer.DatabaseManagement
 			await using (await _lock.ReadLockAsync(token))
 				await foreach (var x in task(_querierFactory.First(x=>x.HandledType == _connections[_currentDatabaseIndex].Type).Create(_connections[_currentDatabaseIndex])))
 					yield return x;
+			await SwitchDatabaseAsync(new ());
 		}
 		public async Task ExecuteAsync(Func<IQuerier, Task> task, CancellationToken token)
 		{
 			await using (await _lock.ReadLockAsync(token))
 				await task(_querierFactory.First(x => x.HandledType == _connections[_currentDatabaseIndex].Type).Create(_connections[_currentDatabaseIndex]));
+			await SwitchDatabaseAsync(new());
 		}
 
 		public DbType DbmsType => _querierFactory.First(x => x.HandledType == _connections[_currentDatabaseIndex].Type).Create(_connections[_currentDatabaseIndex]).Type;
 
-		private TimeSpan SelectNewInterval()
+		private int SelectNewInterval()
 		{
-			var interval = _options.MinimumSwitchInterval;
-			var diff = (_options.MaximumSwitchInterval - _options.MinimumSwitchInterval).Seconds;
-			return interval.Add(new TimeSpan(new Random().Next(0, diff * 100_000_000)));
+			return new Random().Next(_options.MinimumSwitchInterval, _options.MaximumSwitchInterval);
 		}
 
 		public string FromatLiteral(object literal)
